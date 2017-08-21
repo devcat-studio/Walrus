@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Walrus example</title>
+<style>
+fieldset { float: left; }
+thead tr { background: silver; }
+td { font-family: monospace; width: 10em; }
+</style>
+<script src=Walrus.standalone.min.js></script>
+<script>
+function $(id) { return document.getElementById(id); }
+
+function post(url, data, resolve, reject) {
+	var req = new XMLHttpRequest();
+	var done = false;
+	req.open('POST', url, true);
+	req.onreadystatechange = function(e) {
+		if (req.readyState === 4) {
+			if (done) return;
+			if (req.status == 200) {
+				return resolve(req.responseText);
+			} else {
+				return reject();
+			}
+			done = true;
+		}
+	};
+	req.onerror = function() {
+		if (!done) {
+			return reject();
+			done = true;
+		}
+	};
+	req.send(data);
+}
+
+function withWebAuth(resolve, reject) {
+	post('/params', null, function(params) {
+		try {
+			var auth = new Walrus.WebAuth(params);
+		} catch (e) {
+			return reject();
+		}
+		return resolve(auth);
+	}, reject);
+}
+
+function withSigninResult(auth, user, secret, resolve, reject) {
+	var data = JSON.stringify([user, secret]);
+	post('/signin', data, function(result) {
+		auth.decodeResult(result, function(output) {
+			return resolve(output);
+		}, reject);
+	}, reject);
+}
+
+function signin(form, fieldset, user, pass) {
+	fieldset.disabled = true;
+	function finish() {
+		fieldset.disabled = false;
+		form.reset();
+		user.focus();
+	}
+
+	withWebAuth(function(auth) {
+		auth.makeSecret(user.value, pass.value, function(secret) {
+			withSigninResult(auth, user.value, secret, function(output) {
+				alert('signed in as [' + user.value + '] with comments:\n' + output);
+				finish();
+				refreshUsers(); // may have changed the secrets
+			}, function() {
+				alert('failed to sign in');
+				finish();
+			});
+		});
+	}, function() {
+		alert('failed to load client authentication parameters');
+		finish();
+	});
+	return false;
+}
+
+function signup(form, fieldset, user, pass, comment) {
+	fieldset.disabled = true;
+	function finish() {
+		fieldset.disabled = false;
+		form.reset();
+		user.focus();
+	}
+
+	withWebAuth(function(auth) {
+		auth.makeSecret(user.value, pass.value, function(secret) {
+			var data = JSON.stringify([user.value, secret, comment.value]);
+			post('/signup', data, function(output) {
+				if (output === 'OK') {
+					alert('signed up as [' + user.value + ']');
+				} else {
+					alert('failed to sign up: ' + output);
+				}
+				finish();
+				refreshUsers();
+			}, function() {
+				alert('failed to sign up');
+				finish();
+			});
+		});
+	}, function() {
+		alert('failed to load client authentication parameters');
+		finish();
+	});
+	return false;
+}
+
+function changeCost(value, fieldset) {
+	fieldset.disabled = true;
+	function finish() {
+		fieldset.disabled = false;
+	}
+
+	post('/change-cost', value, function(newcost) {
+		if (newcost !== '') {
+			alert('okay, new cost is: ' + newcost);
+		} else {
+			alert('failed to change storage cost');
+		}
+		finish();
+	}, function() {
+		alert('failed to change storage cost');
+		finish();
+	});
+	return false;
+}
+
+function refreshUsers() {
+	var tab = $('users');
+	post('/users', null, function(data) {
+		data = JSON.parse(data);
+		tab.innerHTML = ''; // empty all the things
+		for (var i = 0; i < data.length; ++i) {
+			var row = document.createElement('tr');
+			for (var j = 0; j < data[i].length; ++j) {
+				var col = document.createElement('td');
+				col.textContent = data[i][j];
+				row.appendChild(col);
+			}
+			tab.appendChild(row);
+		}
+	}, function() {
+		tab.innerHTML = '<tr><td colspan=3 align=center>Failed to load</td></tr>';
+	});
+	return false;
+}
+</script>
+</head>
+<body onload="refreshUsers()">
+<fieldset id=signin style=width:20em>
+	<legend>Sign in</legend>
+	<form method=post onsubmit="return window.signin(this, $('signin'), $('signin_user'), $('signin_pass'))">
+	<input type=text id=signin_user required placeholder=Username><br>
+	<input type=password id=signin_pass required placeholder=Password><br>
+	<input type=submit value="Sign in">
+	</form>
+	<hr>
+	Change storage cost:<br>
+	<button value=b0a40100 onclick="return window.changeCost(this.value, $('signin'))">16 MB, r=16, p=1</button>
+	<button value=b0d40400 onclick="return window.changeCost(this.value, $('signin'))">128 MB, r=16, p=4</button>
+</fieldset>
+<fieldset id=signup style=width:15em>
+	<legend>Sign up</legend>
+	<form method=post onsubmit="return window.signup(this, $('signup'), $('signup_user'), $('signup_pass'), $('signup_comment'))">
+	<input type=text id=signup_user required placeholder=Username><br>
+	<input type=password id=signup_pass required placeholder=Password><br>
+	<textarea id=signup_comment rows=4 style=width:100% placeholder=Comment></textarea><br>
+	<input type=submit value="Sign up">
+	</form>
+</fieldset>
+<fieldset style=width:30em>
+	<legend>Users</legend>
+	<table border=1 width=100%>
+		<thead><tr><th>User</th><th>Stored Secret</th><th>Comments</th></tr></thead>
+		<tbody id=users></tbody>
+	</table>
+</fieldset>
+</body>
+</html>

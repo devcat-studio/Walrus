@@ -1,0 +1,11 @@
+{
+  "name": "walrus-frontend",
+  "devDependencies": {
+    "typescript": "^2.3",
+    "uglify-js": "^3"
+  },
+  "scripts": {
+    "install": "tsc -p ./",
+    "postinstall": "uglifyjs --compress --mangle --source-map content=bin/Walrus.js.map -o bin/Walrus.standalone.min.js -- more-entropy.min.js nacl-fast.min.js bin/Walrus.js"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "none",
+    "noImplicitAny": false,
+    "removeComments": true,
+    "sourceMap": true,
+    "declaration": true,
+    "outFile": "bin/Walrus.js"
+  },
+  "files": [
+    "Walrus.ts",
+    "nacl.d.ts",
+    "more-entropy.d.ts"
+  ]
+}

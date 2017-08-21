@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="scrypt">
+      <UniqueIdentifier>{bd0a883c-4521-4c53-9582-8c635184cd3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tweetnacl">
+      <UniqueIdentifier>{d801bce0-3b91-4a7d-a83d-ca5639979720}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tweetnacl\tweetnacl.c">
+      <Filter>tweetnacl</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\cpusupport_x86_sse2.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\crypto_scrypt.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\crypto_scrypt_smix.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\crypto_scrypt_smix_sse2.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\insecure_memzero.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\sha256.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="scrypt\warnp.c">
+      <Filter>scrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="tweetnacl\TweetNaClRandomBytes.c">
+      <Filter>tweetnacl</Filter>
+    </ClCompile>
+    <ClCompile Include="walrus.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tweetnacl\tweetnacl.h">
+      <Filter>tweetnacl</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\cpusupport.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\crypto_scrypt.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\crypto_scrypt_smix.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\crypto_scrypt_smix_sse2.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\insecure_memzero.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\scrypt_platform.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\sha256.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\sysendian.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\warnp.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\config.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="scrypt\cpuconfig.h">
+      <Filter>scrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="cpuid.h" />
+    <ClInclude Include="walrus.h" />
+  </ItemGroup>
+</Project>
