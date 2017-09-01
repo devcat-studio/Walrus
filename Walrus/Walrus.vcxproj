@@ -47,7 +47,7 @@
     <ClCompile Include="walrus.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{007A902E-B9E2-4D80-AEE3-22A24255F677}</ProjectGuid>
+    <ProjectGuid>{15E9D386-3466-40B1-8CD9-ADC4CB168DA0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>etc</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
