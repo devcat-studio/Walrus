@@ -892,6 +892,7 @@ walrus *walrus_new(const char *realm, size_t len)
 	w->magic = WALRUS_MAGIC;
 	w->realm = malloc(len);
 	if (w->realm == NULL) goto free_walrus;
+	memcpy(w->realm, realm, len);
 	w->realmlen = len;
 	w->keypairs = NULL;
 	w->nkeypairs = 0;
