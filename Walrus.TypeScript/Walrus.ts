@@ -1,4 +1,7 @@
 ﻿namespace Walrus {
+    // 이 선언이 앞에 있어야 한다! 안 그러면 WebAuth가 볼 방법이 없다.
+    var withRandomGenerator: (realm: Uint8Array, cb: (gen: RandomGenerator) => void) => void;
+
     //-------------------------------------------------------------------------
     export class WebAuth {
         realm: Uint8Array;
@@ -26,11 +29,13 @@
             this.withRandomGenerator = (realm, cb) => {
                 withRandomGenerator(realm, gen => {
                     this.withRandomGenerator = (_, cb) => cb(gen);
+
+                    // 이제 RNG를 쓸 수 있으니 키를 생성한다.
+                    ({ publicKey: this.clientPublicKey, secretKey: this.clientSecretKey } = nacl.box.keyPair());
+
                     cb(gen);
                 });
             };
-
-            ({ publicKey: this.clientPublicKey, secretKey: this.clientSecretKey } = nacl.box.keyPair());
         }
 
         makeSecret(userId: string, password: string, resolve: (secret: string) => void) {
@@ -76,8 +81,10 @@
                 return fail();
             }
             // TODO 이거 JSON에 UTF-8 들어 있는 거 체크해야 하지 않을까...
-            if (decrypted.some(v => v >= 0x80)) {
-                return fail();
+            for (let i = 0; i < decrypted.length; ++i) {
+                if (decrypted[i] >= 0x80) {
+                    return fail();
+                }
             }
             let bytes = String.fromCharCode.apply(null, decrypted);
             let output;
@@ -297,8 +304,10 @@
         constructor(seed: Uint8Array) {
             this.k = new Uint8Array(nacl.hash.hashLength);
             this.v = new Uint8Array(nacl.hash.hashLength);
-            this.k.fill(0x00);
-            this.v.fill(0x01);
+            for (let i = 0; i < nacl.hash.hashLength; ++i) {
+                this.k[i] = 0x00;
+                this.v[i] = 0x01;
+            }
             this.reseed(seed);
         }
 
@@ -365,11 +374,11 @@
         (nbytes: number): Uint8Array;
     }
 
-    var withRandomGenerator: (realm: Uint8Array, cb: (gen: RandomGenerator) => void) => void;
-    if (crypto && crypto.getRandomValues) {
+    let cryptoImpl = (<any>window).crypto || (<any>window).msCrypto;
+    if (cryptoImpl && cryptoImpl.getRandomValues) {
         // 지원하는 브라우저에서는 window.crypto.getRandomValues를 바로 쓴다.
         // TODO more-entropy도 함께 쓰는 게 좋을까?
-        let getRandomValues = crypto.getRandomValues.bind(crypto);
+        let getRandomValues = cryptoImpl.getRandomValues.bind(cryptoImpl);
         withRandomGenerator = (_, cb) => {
             cb(nbytes => {
                 let buf = new Uint8Array(nbytes);
@@ -385,14 +394,14 @@
                 // bits의 각 값에는 범위 제약이 없다. 따라서 이걸 무슨 바이트열로 바꾸지 않고,
                 // bits의 문자열 표현 그 자체를 해시에 밀어 넣는다.
                 // (MIN_SEED_LENGTH가 해시 출력보다 작으므로 한 번으로 충분하다.)
-                let seed = new Uint8Array(HmacDrbg.MIN_SEED_LENGTH);
                 let k = new Uint8Array(16 + realm.length); // "SilvervineRandom" || realm
                 const SILVERVINE_RANDOM = [83, 105, 108, 118, 101, 114, 118, 105, 110, 101, 82, 97, 110, 100, 111, 109];
                 k.set(SILVERVINE_RANDOM);
                 k.set(realm, 16);
-                seed.set(hmac(k, utf8ToTypedArray(JSON.stringify(bits))));
 
+                let seed = new Uint8Array(hmac(k, utf8ToTypedArray(JSON.stringify(bits))), 0, HmacDrbg.MIN_SEED_LENGTH);
                 let drbg = new HmacDrbg(seed);
+                nacl.setPRNG((x, n) => x.set(drbg.generate(n)));
                 cb(nbytes => drbg.generate(nbytes));
             });
         };
