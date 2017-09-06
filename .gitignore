@@ -252,4 +252,5 @@ __pycache__
 Walrus.TypeScript/bin/*
 !Walrus.TypeScript/bin/Walrus.standalone.min.js
 !Walrus.TypeScript/bin/Walrus.standalone.min.js.map
+!Walrus.TypeScript/bin/Walrus.d.ts
 
