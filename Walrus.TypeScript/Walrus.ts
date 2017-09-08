@@ -432,7 +432,7 @@
     function decodeResult(s: string): Result {
         let result = base64ToTypedArray(s);
         if (result.length < 6 + nacl.box.nonceLength + nacl.box.overheadLength) return null;
-        if (!arrayEq(result.subarray(0, 6), [0x59, 0xa9, 0x6b, 0xb4, 0xc4, 0x75])) return null;
+        if (!arrayEq(result.subarray(0, 6), [0x59, 0xa9, 0x6b, 0xba, 0xc4, 0x75])) return null;
         let n = result.subarray(6, 6 + nacl.box.nonceLength);
         let o = result.subarray(6 + nacl.box.nonceLength);
         return { output: o, nonce: n };

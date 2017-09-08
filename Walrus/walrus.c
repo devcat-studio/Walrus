@@ -671,7 +671,7 @@ struct walrus_secret {
 #define WALRUS_SERVER_SALT_PREFIX_LEN 16
 
 static const byte_t WALRUS_SECRET_B64_MAGIC[WALRUS_B64_ENCODE_OUTLEN(WALRUS_SECRET_MAGIC_LEN)] = "WalrusS1";
-static const byte_t WALRUS_RESULT_MAGIC[WALRUS_RESULT_MAGIC_LEN] = { 0x59, 0xa9, 0x6b, 0xb4, 0xc4, 0x75 };
+static const byte_t WALRUS_RESULT_MAGIC[WALRUS_RESULT_MAGIC_LEN] = { 0x59, 0xa9, 0x6b, 0xba, 0xc4, 0x75 };
 static const byte_t WALRUS_SERVER_SALT_PREFIX[WALRUS_SERVER_SALT_PREFIX_LEN] = "SilvervineServer";
 
 static int walrus_secret_valid_magic(const walrus_secret *ws)
