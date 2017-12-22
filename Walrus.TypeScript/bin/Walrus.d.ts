@@ -7,7 +7,8 @@ declare namespace Walrus {
         withRandomGenerator: (realm: Uint8Array, cb: (gen: RandomGenerator) => void) => void;
         constructor(params: string);
         makeSecret(userId: string, password: string, resolve: (secret: string) => void): void;
-        decodeResult(result: string, resolve: (output: any) => void, reject: (reason: any) => void): void;
+        decodeResultAsByteArray(result: string, resolve: (output: Uint8Array) => void, reject: (reason: any) => void): void;
+        decodeResultAsString(result: string, resolve: (output: string) => void, reject: (reason: any) => void): void;
     }
     interface RandomGenerator {
         (nbytes: number): Uint8Array;

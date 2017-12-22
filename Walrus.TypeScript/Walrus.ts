@@ -63,7 +63,7 @@
             });
         }
 
-        decodeResult(result: string, resolve: (output: any) => void, reject: (reason: any) => void) {
+        decodeResultAsByteArray(result: string, resolve: (output: Uint8Array) => void, reject: (reason: any) => void) {
             let fail = () => reject(new Error('bad authentication result'));
 
             let obj;
@@ -80,20 +80,19 @@
             if (!decrypted) {
                 return fail();
             }
-            // TODO 이거 JSON에 UTF-8 들어 있는 거 체크해야 하지 않을까...
-            for (let i = 0; i < decrypted.length; ++i) {
-                if (decrypted[i] >= 0x80) {
-                    return fail();
+            return resolve(decrypted);
+        }
+
+        decodeResultAsString(result: string, resolve: (output: string) => void, reject: (reason: any) => void) {
+            return this.decodeResultAsByteArray(result, output => {
+                let string;
+                try {
+                    string = typedArrayToUtf8(output);
+                } catch (e) {
+                    return reject(e);
                 }
-            }
-            let bytes = String.fromCharCode.apply(null, decrypted);
-            let output;
-            try {
-                output = JSON.parse(bytes);
-            } catch (e) {
-                return fail();
-            }
-            return resolve(output);
+                return resolve(string);
+            }, reject);
         }
     }
 
@@ -185,7 +184,36 @@
         return new Uint8Array(out);
     }
 
-    function typedArrayToBase64(a: Uint8Array): string {
+    function typedArrayToUtf8(a: Uint8Array | Array<number>): string {
+        let out = [], p = 0;
+        for (let i = 0; i < a.length;) {
+            let c = a[i++], c2, c3, c4;
+            if (c < 0x80) {
+                out[p++] = c;
+            } else if (c < 0xc2) {
+                throw 'invalid UTF-8';
+            } else if (c < 0xe0) {
+                if (i + 1 > a.length || ((c2 = a[i++]) & 0xc0) != 0x80) throw 'invalid UTF-8';
+                out[p++] = ((c & 0x1f) << 6) | (c2 & 0x3f);
+            } else if (c < 0xf0) {
+                if (i + 2 > a.length || ((c2 = a[i++]) & 0xc0) != 0x80 || ((c3 = a[i++]) & 0xc0) != 0x80) throw 'invalid UTF-8';
+                c = ((c & 0x0f) << 12) | ((c2 & 0x3f) << 6) | (c3 & 0x3f);
+                if (c < 0x800 || (0xd800 <= c && c < 0xe000)) throw 'invalid UTF-8';
+                out[p++] = c;
+            } else if (c < 0xf5) {
+                if (i + 3 > a.length || ((c2 = a[i++]) & 0xc0) != 0x80 || ((c3 = a[i++]) & 0xc0) != 0x80 || ((c4 = a[i++]) & 0xc0) != 0x80) throw 'invalid UTF-8';
+                c = (((c & 0x07) << 18) | ((c2 & 0x3f) << 12) | ((c3 & 0x3f) << 6) | (c4 & 0x3f)) - 0x10000;
+                if (c < 0 || c >= 0x100000) throw 'invalid UTF-8';
+                out[p++] = 0xd800 + (c >> 10);
+                out[p++] = 0xdc00 + (c & 0x03ff);
+            } else {
+                throw 'invalid UTF-8';
+            }
+        }
+        return String.fromCharCode.apply(null, out);
+    }
+
+    function typedArrayToBase64(a: Uint8Array | Array<number>): string {
         return btoa(String.fromCharCode.apply(null, a));
     }
 
@@ -205,29 +233,91 @@
     }
 
     function typedArrayTest() {
-        assertEq(utf8ToTypedArray('^_^'), [94, 95, 94]);
-        assertEq(utf8ToTypedArray('안녕?'), [236, 149, 136, 235, 133, 149, 63]);
-        assertEq(utf8ToTypedArray('💩'), [240, 159, 146, 169]);
+        let doubleCheckUtf8 = (utf8: Array<number>, s: string) => {
+            assertEq(typedArrayToUtf8(new Uint8Array(utf8)), s);
+            assertEq(utf8ToTypedArray(s), utf8);
+        };
+
+        doubleCheckUtf8([94, 95, 94], '^_^');
+        doubleCheckUtf8([127], '\x7f');
+        doubleCheckUtf8([194, 128], '\x80');
+        doubleCheckUtf8([209, 129, 208, 190, 209, 128, 208, 190, 208, 186, 32, 208, 180, 208, 178, 208, 176], 'сорок два');
+        doubleCheckUtf8([223, 191], '\u07ff');
+        doubleCheckUtf8([224, 160, 128], '\u0800');
+        doubleCheckUtf8([236, 149, 136, 235, 133, 149, 63], '안녕?');
+        doubleCheckUtf8([239, 191, 191], '\uffff');
+        doubleCheckUtf8([240, 144, 128, 128], '\ud800\udc00');
+        doubleCheckUtf8([240, 159, 146, 169], '💩');
+        doubleCheckUtf8([244, 143, 191, 191], '\udbff\udfff');
+
         assertEq(utf8ToTypedArray('\udc00\ud800'), [237, 176, 128, 237, 160, 128]); // 깨진 서로게이트는 잘못된 UTF-8로 나옴
 
-        let doubleCheck = (arr: Array<number>, base64: string) => {
+        let expectErrorTestsUtf8 = [
+            [0x80],
+            [0xbf],
+            [0xc0],
+            [0xc1],
+            [0xc2],
+            [0xc2, 0x7f],
+            [0xc2, 0xc0],
+            [0xdf],
+            [0xe0],
+            [0xe0, 0x80],
+            [0xe0, 0x80, 0x80],
+            [0xe0, 0x9f, 0xbf],
+            [0xe1],
+            [0xe1, 0x80],
+            [0xe1, 0x7f, 0x80],
+            [0xe1, 0xc0, 0x80],
+            [0xe1, 0x80, 0x7f],
+            [0xe1, 0x80, 0xc0],
+            [0xed, 0xa0, 0x80], // 서로게이트 시작
+            [0xed, 0xbf, 0xbf], // 서로게이트 끝
+            [0xef],
+            [0xef, 0xbf],
+            [0xf0],
+            [0xf0, 0x80],
+            [0xf0, 0x80, 0x80],
+            [0xf0, 0x80, 0x80, 0x80],
+            [0xf0, 0x8f, 0xbf, 0xbf],
+            [0xf1],
+            [0xf1, 0x80],
+            [0xf1, 0x80, 0x80],
+            [0xf1, 0x7f, 0x80, 0x80],
+            [0xf1, 0xc0, 0x80, 0x80],
+            [0xf1, 0x80, 0x7f, 0x80],
+            [0xf1, 0x80, 0xc0, 0x80],
+            [0xf1, 0x80, 0x80, 0x7f],
+            [0xf1, 0x80, 0x80, 0xc0],
+            [0xf4],
+            [0xf4, 0x8f],
+            [0xf4, 0x8f, 0xbf],
+            [0xf4, 0x90, 0x80, 0x80],
+            [0xf5],
+            [0xff],
+        ];
+        for (let test of expectErrorTestsUtf8) {
+            expectError(() => typedArrayToUtf8(test));
+        }
+
+        let doubleCheckBase64 = (arr: Array<number>, base64: string) => {
             assertEq(typedArrayToBase64(new Uint8Array(arr)), base64);
             assertEq(base64ToTypedArray(base64), arr);
         };
-        doubleCheck([], '');
-        doubleCheck([1], 'AQ==');
-        doubleCheck([42], 'Kg==');
-        doubleCheck([0, 255], 'AP8=');
-        doubleCheck([255, 0], '/wA=');
-        doubleCheck([0, 255, 0], 'AP8A');
-        doubleCheck([255, 0, 255], '/wD/');
-        doubleCheck([12, 34, 56], 'DCI4');
-        doubleCheck([12, 34, 56, 78], 'DCI4Tg==');
-        doubleCheck([12, 34, 56, 78, 90], 'DCI4Tlo=');
-        doubleCheck([251, 239, 190, 251, 239, 190], '++++++++');
-        doubleCheck([255, 255, 255, 255, 255, 255], '////////');
+        doubleCheckBase64([], '');
+        doubleCheckBase64([1], 'AQ==');
+        doubleCheckBase64([42], 'Kg==');
+        doubleCheckBase64([0, 255], 'AP8=');
+        doubleCheckBase64([255, 0], '/wA=');
+        doubleCheckBase64([0, 255, 0], 'AP8A');
+        doubleCheckBase64([255, 0, 255], '/wD/');
+        doubleCheckBase64([12, 34, 56], 'DCI4');
+        doubleCheckBase64([12, 34, 56, 78], 'DCI4Tg==');
+        doubleCheckBase64([12, 34, 56, 78, 90], 'DCI4Tlo=');
+        doubleCheckBase64([251, 239, 190, 251, 239, 190], '++++++++');
+        doubleCheckBase64([255, 255, 255, 255, 255, 255], '////////');
 
-        let expectErrorTests = [
+        let expectErrorTestsBase64 = [
             '!',
             'A',
             'B',
@@ -249,7 +339,7 @@
             'AP 8',
             'AP 8=',
         ];
-        for (let test of expectErrorTests) {
+        for (let test of expectErrorTestsBase64) {
             expectError(() => base64ToTypedArray(test));
         }
     }

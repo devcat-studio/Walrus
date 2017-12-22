@@ -50,7 +50,7 @@ function withWebAuth(resolve, reject) {
 function withSigninResult(auth, user, secret, resolve, reject) {
 	var data = JSON.stringify([user, secret]);
 	post('/signin', data, function(result) {
-		auth.decodeResult(result, function(output) {
+		auth.decodeResultAsString(result, function(output) {
 			return resolve(output);
 		}, reject);
 	}, reject);

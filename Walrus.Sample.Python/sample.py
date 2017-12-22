@@ -92,7 +92,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     print('    to:  ', new_secret, file=sys.stderr)
             except walrus.WalrusError:
                 return self.reply(b'USER_PASS_COMBINATION_MISMATCH', status=403)
-            result = secret.make_result(json.dumps(comment).encode('ascii'))
+            result = secret.make_result(comment.encode('utf-8'))
             return self.reply(result)
 
         elif self.path == '/signup':
