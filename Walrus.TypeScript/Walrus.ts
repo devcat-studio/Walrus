@@ -245,7 +245,7 @@
         doubleCheckUtf8([223, 191], '\u07ff');
         doubleCheckUtf8([224, 160, 128], '\u0800');
         doubleCheckUtf8([236, 149, 136, 235, 133, 149, 63], '안녕?');
-        doubleCheckUtf8([239, 191, 191], '\uffff');
+        doubleCheckUtf8([239, 191, 191], String.fromCharCode(0xffff)); // 일부 브라우저(특히 IE)에서 리터럴에 나오는 U+FFFE/F를 U+FFFD로 치환함
         doubleCheckUtf8([240, 144, 128, 128], '\ud800\udc00');
         doubleCheckUtf8([240, 159, 146, 169], '💩');
         doubleCheckUtf8([244, 143, 191, 191], '\udbff\udfff');
